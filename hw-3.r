@@ -39,11 +39,17 @@ for (i in 1:ngrid){
 }
 
 ## Joint posterior of mu and tau^2
-joint.post<-rep(NA,ngrid)
-for (i in 1:ngrid){
-  joint.post[i]<-post.tausq[i]*post.cond.mu[i]
+logjointpost<-function(mu,sigma,tausq,y){
+  a<--1/2log(tausq)
+  b<-sum(dnorm(y,mu,sigma^2+tausq))
+  value<-a+b
+  return(value)
 }
-joint.post<-joint.post/sum(joint.post)
+#joint.post<-rep(NA,ngrid)
+#for (i in 1:ngrid){
+#  joint.post[i]<-post.tausq[i]*post.cond.mu[i]
+#}
+#joint.post<-joint.post/sum(joint.post)
 
 ## Question 3
 
@@ -83,12 +89,13 @@ for (i in 1:ngrid){
 }
 mean<-apply(theta.samp,2,mean)
 
-## Question 5
+## Question 6
 tausq0<-median(tausq.sample)
 theta.new.samp<-matrix(NA,nrow=ngrid,ncol=8)
 mu.new.samp<-rep(NA,ngrid)
 new.samp<-matrix(NA,nrow=ngrid,ncol=9)
 start<-c(8,5,5,5,5,5,5,5,5)
+#start<-c(8,10,10,10,10,10,10,10,10)  #different starting value
 new.sample<-function(tausq0,y,sigma){
   param<-matrix(NA,ngrid,9)
   colnames(param)<-c("mu","theta1","theta2","theta3","theta4","theta5","theta6","theta7","theta8")
@@ -121,13 +128,18 @@ for (i in 2:9){
 t(apply(new.samp,2,quantile,c(0.025,0.5,0.975)))
 apply(new.samp,2,mean)
 
+## Trying different starting value
+start<-c(8,10,10,10,10,10,10,10,10)
+
+
 ## Question 7
-new.ngrid<-901
+# draw 1000 samples for each school
+new.ngrid<-1000
 y.pred<-matrix(NA,nrow=new.ngrid,ncol=8)
-theta.new.samp<-new.samp[good.new.samp,2:9]
-for (i in 1:901){
+theta.samp<-new.samp[,2:9]
+for (i in 1:1000){
   for (j in 1:8){
-  y.pred[i,j]<-rnorm(1,theta.new.samp[i,j],sqrt(sigma[j]))
+  y.pred[i,j]<-rnorm(1,theta.samp[i,j],sqrt(sigma[j]))
   }
 }
 n<-0
@@ -137,6 +149,71 @@ for (i in 1:new.ngrid){
 }
 n/new.ngrid
 
+## Simulation 1000 for the situation above
+new.ngrid<-1000
+y1.pred<-matrix(NA,ngrid,ngrid)
+y2.pred<-matrix(NA,ngrid,ngrid)
+y3.pred<-matrix(NA,ngrid,ngrid)
+y4.pred<-matrix(NA,ngrid,ngrid)
+y5.pred<-matrix(NA,ngrid,ngrid)
+y6.pred<-matrix(NA,ngrid,ngrid)
+y7.pred<-matrix(NA,ngrid,ngrid)
+y8.pred<-matrix(NA,ngrid,ngrid)
+prediction<-function(theta,sigma){
+  value<-rnorm(1,theta,sqrt(sigma))
+  return(value)
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y1.pred[i,j]<-prediction(theta.samp[i,1],sqrt(sigma[1]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y2.pred[i,j]<-prediction(theta.samp[i,2],sqrt(sigma[2]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y3.pred[i,j]<-prediction(theta.samp[i,3],sqrt(sigma[3]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y4.pred[i,j]<-prediction(theta.samp[i,4],sqrt(sigma[4]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y5.pred[i,j]<-prediction(theta.samp[i,5],sqrt(sigma[5]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y6.pred[i,j]<-prediction(theta.samp[i,6],sqrt(sigma[6]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y7.pred[i,j]<-prediction(theta.samp[i,7],sqrt(sigma[7]))
+  }
+}
+for (i in 1:ngrid){
+  for (j in 1:ngrid){
+    y8.pred[i,j]<-prediction(theta.samp[i,8],sqrt(sigma[8]))
+  }
+}
+best.times<-rep(0,ngrid)
+for (j in 1:ngrid){
+  for (i in 1:ngrid){
+    if (y1.pred[i,j]>max(y2.pred[i,j],y3.pred[i,j],y4.pred[i,j],y5.pred[i,j],y6.pred[i,j],y7.pred[i,j],y8.pred[i,j]))
+    {best.times[j]<-best.times[j]+1}
+  }
+}
+## probability that school A offers the best program
+prob<-best.times/ngrid
+mean(prob)
+quantile(prob,c(0.025,0.5,0.975))
 
 Question 11
 y<-c(74,99,58,70,122,77,104,129,308,119)
