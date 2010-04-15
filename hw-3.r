@@ -215,51 +215,167 @@ prob<-best.times/ngrid
 mean(prob)
 quantile(prob,c(0.025,0.5,0.975))
 
-Question 11
+##Question 11
 y<-c(74,99,58,70,122,77,104,129,308,119)
 m<-length(y)
-## posterior log-likelihood of alpha and beta
-loglike<-function(alpha,beta,theta){
-  if (beta<=0) return(-1e10)
-  if (beta>0){
-  n<-length(theta)
-  value<-n*alpha*log(beta)-n*digamma(alpha)
-  value<-value+(alpha-1)*sum(log(theta))-beta*sum(theta)
+
+##posterior log-likelohood of alpha and beta
+loglike<-function(phi,theta){
+  if (phi[1]<=0 | phi[2]<=0) return(1e-10)
+  else {
+  value<-sum(dgamma(theta,phi[1],rate=phi[2],log=T))
   return(value)
   }
 }
+## Gibbs Sampler 1: Independent log-Normal Distribution
 nsim<-10000
-alpha.samp<-rep(NA,nsim)
-beta.samp<-rep(NA,nsim)
-theta.samp<-matrix(NA,10000,m)
-alpha.samp[1]<-3
-beta.samp[1]<-0.03
-for(j in 1:m){
-  theta.samp[1,j]<-rgamma(1,alpha.samp[1]+y[j],rate=beta.samp[1]+1)
+##phi<-c(3,3)
+phi<-c(10,10)
+theta<-y
+##sd.phi<-c(.5,.5)
+##sd.phi<-c(.35,.35)
+sd.phi<-c(.75,.75)
+nacc<-0
+theta.norm<-matrix(NA,nsim,m)
+phi.norm<-matrix(NA,nsim,2)
+for (i in 1:nsim){
+  ##update theta
+  theta<-rgamma(m,phi[1]+y,phi[2]+1)
+  ##update alpha and beta
+  new<-exp(rnorm(2,log(phi),sd.phi))
+  log.new<-loglike(new,theta)+sum(log(new))
+  log.old<-loglike(phi,theta)+sum(log(phi))
+  log.diff<-log.new-log.old
+  logu<-log(runif(1))
+  if (logu<log.diff) {phi<-new; nacc<-nacc+1}
+  theta.norm[i,]<-theta
+  phi.norm[i,]<-phi
 }
-for (i in 2:nsim){
-  alpha.star<-rnorm(1,alpha.samp[i-1],1)
-  beta.star<-rnorm(1,beta.samp[i-1],1)
-  log.l<-loglike(alpha.samp[i-1],beta.samp[i-1],theta.samp[i-1,])
-  log.star<-loglike(alpha.star,beta.star,theta.samp[i-1,])
-  logr<-log.star-log.l
-  u<-runif(1)
-  logu<-log(u)
-  if (logu<=logr){
-    alpha.samp[i]<-alpha.star
-    beta.samp[i]<-beta.star
-  }
-  if (logu>logr){
-    alpha.samp[i]<-alpha.samp[i-1]
-    beta.samp[i]<-beta.samp[i-1]
-  }
-  for (j in 1:m){
-    theta.samp[i,j]<-rgamma(1,alpha.samp[i]+y[j],rate=beta.samp[i]+1)
-  }
-}
+#phi1<-phi.norm
+#phi2<-phi.norm
+phi3<-phi.norm
+labels<-expression(alpha,beta)
 
-##Examing the samples
+## Acf plot for phi1
 par(mfrow=c(2,1))
-plot(1:nsim,alpha.samp,type="l")
-plot(1:nsim,beta.samp,type="l")
+for (i in 1:2) acf(phi1[,i],lag.max<-100)
 
+## acf for phi2
+par(mfrow=c(2,1))
+for (i in 1:2) acf(phi2[,i],lag.max<-100)
+
+## acf for phi3
+par(mfrow=c(2,1))
+for (i in 1:2) acf(phi3[,i],lag.max<-100)
+
+
+## Compare chains
+par(mfrow=c(2,1))
+plot(phi1[,1],type="l",ylim=range(phi1[,1],phi2[,1],phi3[,1]))
+lines(phi2[,1],col=2)
+lines(phi3[,1],col=3)
+
+plot(phi1[,2],type="l",ylim=range(phi1[,2],phi2[,2],phi3[,2]))
+lines(phi2[,2],col=2)
+lines(phi3[,2],col=3)
+
+summary(phi1[,1])
+summary(phi2[,1])
+summary(phi3[,1])
+quantile(phi1[,1],c(0.025,0.0975))
+quantile(phi2[,1],c(0.025,0.0975))
+quantile(phi3[,1],c(0.025,0.0975))
+summary(phi1[,2])
+summary(phi2[,2])
+summary(phi3[,2])
+quantile(phi1[,2],c(0.025,0.0975))
+quantile(phi2[,2],c(0.025,0.0975))
+quantile(phi3[,2],c(0.025,0.0975))
+
+##Running a longer chain
+
+nsim<-101000
+##phi<-c(3,3)
+phi<-c(10,10)
+theta<-y
+##sd.phi<-c(.5,.5)
+##sd.phi<-c(.35,.35)
+sd.phi<-c(.75,.75)
+nacc<-0
+theta.norm<-matrix(NA,nsim,m)
+phi.norm<-matrix(NA,nsim,2)
+for (i in 1:nsim){
+  ##update theta
+  theta<-rgamma(m,phi[1]+y,phi[2]+1)
+  ##update alpha and beta
+  new<-exp(rnorm(2,log(phi),sd.phi))
+  log.new<-loglike(new,theta)+sum(log(new))
+  log.old<-loglike(phi,theta)+sum(log(phi))
+  log.diff<-log.new-log.old
+  logu<-log(runif(1))
+  if (logu<log.diff) {phi<-new; nacc<-nacc+1}
+  theta.norm[i,]<-theta
+  phi.norm[i,]<-phi
+}
+
+labels<-expression(alpha,beta)
+par(mfrow=c(2,1))
+plot(phi.norm[,1],type="l",ylab=labels[1])
+plot(phi.norm[,2],type="l",ylab=labels[2])
+
+par(mfrow=c(2,1))
+acf(phi.norm[,1],lag.max=100)
+acf(phi.norm[,2],lag.max=100)
+
+
+alpha<-phi.norm[,1]
+beta<-phi.norm[,2]
+mu<-alpha/beta
+sd<-sqrt(alpha/beta^2)
+
+par(mfrow=c(2,2))
+hist(alpha)
+hist(beta)
+hist(mu)
+hist(sd)
+
+##Examining Shrinkage
+par(mfrow=c(1,1))
+theta.postmean<-apply(theta.norm,2,mean)
+mu.postmean<-mean(mu)
+plot(1:m,y,main="shrinkage of sample proportions",pch=19)
+abline(h=mu.postmean,col=4,lwd=2)
+points(1:m,theta.postmean,pch=19,col=2)
+legend(2,250,c("Sample","Post Mean","Overal Mean"),pch=19,col=c(1,2,4))
+
+
+temp<-seq(1001,101000,by=100)
+plot(phi.norm[temp,1],type="l",ylab=labels[1])
+plot(phi.norm[temp,2],type="l",ylab=labels[2])
+
+acf(phi.norm[temp,1],lag.max=100)
+acf(phi.norm[temp,2],lag.max=100)
+
+
+
+
+## 1000 samples of alpha and beta
+alpha.samp<-alpha[temp]
+beta.samp<-beta[temp]
+mean(alpha.samp)
+quantile(alpha.samp,c(.025,.5,.975))
+mean(beta.samp)
+quantile(beta.samp,c(.025,.5,.0975))
+
+## Question 12
+##posterior predictive for a new residential street with a bike lane
+
+theta.new<-rgamma(1000,alpha.samp,rate=beta.samp)
+y.new<-rpois(1000,theta.new)
+par(mfrow=c(2,1))
+hist(theta.new)
+abline(v=mean(theta.new),col=2)
+hist(y.new)
+abline(v=mean(y.new),col=2)
+mean(y.new)
+quantile(y.new,c(.025,.50,.975))
