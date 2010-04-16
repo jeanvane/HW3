@@ -4,6 +4,29 @@ y<-c(28,8,-3,7,-1,1,18,12)
 sigma<-c(15,10,16,11,9,11,10,18)
 ngrid<-1000
 
+## Joint posterior of mu and tau^2
+logjointpost<-function(y,sigma,mu,tausq){
+  value<--1/2*log(tausq)+sum(dnorm(y,mu,sqrt(sigma^2+tausq),log=T))
+  return(value)
+}
+
+## Contour plot of joint posterior of mu and tau^2
+
+mu<-seq(-5,30,len=1000)
+tausq<-ppoints(1000)*10
+log.like<-matrix(NA,1000,1000)
+for (i in 1:1000){
+  for (j in 1:1000){
+    log.like[i,j]<-logjointpost(y,sigma,mu[i],tausq[j])
+  }
+}
+
+like<-exp(log.like-max(log.like))
+like<-like/sum(like)
+
+contour(mu,tausq,like,ylim=c(0,0.4),drawlabel=F)
+
+
 ## Marginal log-Posterior for tau^2
 
 logpost.tau<-function(tausq,y,sigma){
@@ -38,18 +61,6 @@ for (i in 1:ngrid){
   post.cond.mu[i]<-post.condmu(tausq[i],sigma,y)
 }
 
-## Joint posterior of mu and tau^2
-logjointpost<-function(mu,sigma,tausq,y){
-  a<--1/2log(tausq)
-  b<-sum(dnorm(y,mu,sigma^2+tausq))
-  value<-a+b
-  return(value)
-}
-#joint.post<-rep(NA,ngrid)
-#for (i in 1:ngrid){
-#  joint.post[i]<-post.tausq[i]*post.cond.mu[i]
-#}
-#joint.post<-joint.post/sum(joint.post)
 
 ## Question 3
 
