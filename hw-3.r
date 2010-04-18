@@ -114,7 +114,7 @@ new.sample<-function(tausq0,y,sigma){
   gamma<-rep(NA,8)
   param[1,]<-start
   for (i in 2:ngrid){
-    param[i,1]<-dnorm(1,sum(param[i-1,2:9])/8,tausq0/8)
+    param[i,1]<-rnorm(1,sum(param[i-1,2:9])/8,sqrt(tausq0/8))
     for (j in 1:8){
       gamma[j]<-1/(1/tausq0+1/sigma[j]^2)
       xi[j]<-(param[i-1,1]/tausq0+y[j]/sigma[j]^2)*gamma[j]
