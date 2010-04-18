@@ -30,15 +30,15 @@ contour(mu,tausq,like,ylim=c(0,0.4),drawlabel=F)
 ## Marginal log-Posterior for tau^2
 
 logpost.tau<-function(tausq,y,sigma){
-  vsq<-sum(1/(sigma^2+tausq))
+  vsq<-1/sum(1/(sigma^2+tausq))
   beta<-sum(y/(sigma^2+tausq))*vsq
   a<--1/2*log(tausq)
-  b<-sum(log(dnorm(y,1,sqrt(sigma^2+tausq))))
-  c<-log(dnorm(1,beta,vsq))
+  b<-sum(dnorm(y,1,sqrt(sigma^2+tausq),log=T))
+  c<-dnorm(1,beta,sqrt(vsq),log=T)
   value<-a+b-c
   return(value)
 }
-tausq<-seq(0.001,10,len=ngrid)
+tausq<-ppoints(1000)*10
 logpost.tausq<-rep(NA,ngrid)
 for (i in 1:ngrid){
   logpost.tausq[i]<-logpost.tau(tausq[i],y,sigma)
@@ -72,7 +72,7 @@ tausq.sample<-sample(tausq,size=1000,replace=T,prob=post.tausq)
 
 mu.sample<-rep(NA,ngrid)
 for (i in 1:ngrid){
-  vsq<-sum(1/(sigma^2+tausq.sample[i]))
+  vsq<-1/sum(1/(sigma^2+tausq.sample[i]))
   beta<-sum(y/(sigma^2+tausq.sample[i]))*vsq
   mu.sample[i]<-rnorm(1,beta,sqrt(vsq))
 }
