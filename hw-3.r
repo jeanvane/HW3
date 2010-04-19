@@ -33,12 +33,12 @@ logpost.tau<-function(tausq,y,sigma){
   vsq<-1/sum(1/(sigma^2+tausq))
   beta<-sum(y/(sigma^2+tausq))*vsq
   a<--1/2*log(tausq)
-  b<-sum(log(dnorm(y,1,sqrt(sigma^2+tausq))))
-  c<-log(dnorm(1,beta,vsq))
+  b<-sum(dnorm(y,1,sqrt(sigma^2+tausq),log=T))
+  c<-dnorm(1,beta,sqrt(vsq),log=T)
   value<-a+b-c
   return(value)
 }
-tausq<-seq(0.001,10,len=ngrid)
+tausq<-ppoints(1000)*10
 logpost.tausq<-rep(NA,ngrid)
 for (i in 1:ngrid){
   logpost.tausq[i]<-logpost.tau(tausq[i],y,sigma)
@@ -99,16 +99,14 @@ for (i in 1:ngrid){
   theta.samp[i,]<-theta.sample(mu.sample[i],tausq.sample[i],sigma,y)
 }
 mean<-apply(theta.samp,2,mean)
-mean
 
 ## Question 6
 tausq0<-median(tausq.sample)
 theta.new.samp<-matrix(NA,nrow=ngrid,ncol=8)
 mu.new.samp<-rep(NA,ngrid)
 new.samp<-matrix(NA,nrow=ngrid,ncol=9)
-#start<-c(8,5,5,5,5,5,5,5,5)
-#start<-c(10,10,10,10,10,10,10,10,10)  #different starting value
-start<-c(7,7,7,7,7,7,7,7,7)  #different starting value
+start<-c(8,5,5,5,5,5,5,5,5)
+#start<-c(8,10,10,10,10,10,10,10,10)  #different starting value
 new.sample<-function(tausq0,y,sigma){
   param<-matrix(NA,ngrid,9)
   colnames(param)<-c("mu","theta1","theta2","theta3","theta4","theta5","theta6","theta7","theta8")
@@ -116,7 +114,7 @@ new.sample<-function(tausq0,y,sigma){
   gamma<-rep(NA,8)
   param[1,]<-start
   for (i in 2:ngrid){
-    param[i,1]<-rnorm(1,sum(param[i-1,2:9])/8,tausq0/8)
+    param[i,1]<-rnorm(1,sum(param[i-1,2:9])/8,sqrt(tausq0/8))
     for (j in 1:8){
       gamma[j]<-1/(1/tausq0+1/sigma[j]^2)
       xi[j]<-(param[i-1,1]/tausq0+y[j]/sigma[j]^2)*gamma[j]
@@ -126,6 +124,8 @@ new.sample<-function(tausq0,y,sigma){
   return(param)
 }
 new.samp<-new.sample(tausq0,y,sigma)
+t(apply(new.samp,2,quantile,c(0.025,0.5,0.975)))
+apply(new.samp,2,mean)
 
 par(mfrow=c(2,4))
 for (i in 2:9){
@@ -134,59 +134,10 @@ for (i in 2:9){
 
 par(mfrow=c(2,4))
 for (i in 2:9){
-  acf(new.samp[,i],lag.max=1000)
+  acf(new.samp[,i])
 }
-
-## running a longer chain
-numsim<-401000
-tausq0<-median(tausq.sample)
-theta.longer.samp<-matrix(NA,nrow=numsim,ncol=8)
-mu.longer.samp<-rep(NA,numsim)
-new.longer.samp<-matrix(NA,nrow=numsim,ncol=9)
-new.longer.sample<-function(tausq0,y,sigma){
-  param<-matrix(NA,numsim,9)
-  colnames(param)<-c("mu","theta1","theta2","theta3","theta4","theta5","theta6","theta7","theta8")
-  xi<-rep(NA,8)
-  gamma<-rep(NA,8)
-  param[1,]<-start
-  for (i in 2:numsim){
-    param[i,1]<-rnorm(1,sum(param[i-1,2:9])/8,tausq0/8)
-    for (j in 1:8){
-      gamma[j]<-1/(1/tausq0+1/sigma[j]^2)
-      xi[j]<-(param[i-1,1]/tausq0+y[j]/sigma[j]^2)*gamma[j]
-      param[i,j+1]<-rnorm(1,xi[j],sqrt(gamma[j]))
-    }
-  }
-  return(param)
-}
-new.longer.samp<-new.longer.sample(tausq0,y,sigma)
-
-par(mfrow=c(2,4))
-for (i in 2:9){
-  plot(new.longer.samp[,i],type="l")
-}
-
-par(mfrow=c(2,4))
-for (i in 2:9){
-  acf(new.longer.samp[,i],lag.max=1000)
-}
-good<-seq(1001,numsim,by=400)
-
-par(mfrow=c(2,4))
-for(i in 2:9){
-  plot(new.longer.samp[good,i],type="l")
-}
-
-par(mfrow=c(2,4))
-for (i in 2:9){
-  acf(new.longer.samp[good,i],lag.max=100)
-}
-
-good.samp<-new.longer.samp[good,]
-
-
-t(apply(good.samp,2,quantile,c(0.025,0.5,0.975)))
-apply(good.samp,2,mean)
+t(apply(new.samp,2,quantile,c(0.025,0.5,0.975)))
+apply(new.samp,2,mean)
 
 ## Trying different starting value
 start<-c(8,10,10,10,10,10,10,10,10)
@@ -196,7 +147,7 @@ start<-c(8,10,10,10,10,10,10,10,10)
 # draw 1000 samples for each school
 new.ngrid<-1000
 y.pred<-matrix(NA,nrow=new.ngrid,ncol=8)
-theta.samp<-good.samp[,2:9]
+theta.samp<-new.samp[,2:9]
 for (i in 1:1000){
   for (j in 1:8){
   y.pred[i,j]<-rnorm(1,theta.samp[i,j],sqrt(sigma[j]))
